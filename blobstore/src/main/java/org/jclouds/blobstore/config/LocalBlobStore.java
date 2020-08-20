@@ -636,13 +636,13 @@ public final class LocalBlobStore implements BlobStore {
          logger.debug("Container %s does not exist", containerName);
          throw cnfe(containerName);
       }
+
       // If the blob doesn't exist, a null object is returned
-      if (!storageStrategy.blobExists(containerName, key)) {
+      Blob blob = loadBlob(containerName, key);
+      if (blob == null) {
          logger.debug("Item %s does not exist in container %s", key, containerName);
          return null;
       }
-
-      Blob blob = loadBlob(containerName, key);
 
       if (options != null) {
          String eTag = blob.getMetadata().getETag();
@@ -840,7 +840,9 @@ public final class LocalBlobStore implements BlobStore {
          Blob blobPart = getBlob(mpu.containerName(), MULTIPART_PREFIX + mpu.id() + "-" + mpu.blobName() + "-" + part.partNumber());
          contentLength += blobPart.getMetadata().getContentMetadata().getContentLength();
          blobs.add(blobPart);
-         md5Hasher.putBytes(BaseEncoding.base16().lowerCase().decode(blobPart.getMetadata().getETag()));
+         if (blobPart.getMetadata().getETag() != null) {
+            md5Hasher.putBytes(BaseEncoding.base16().lowerCase().decode(blobPart.getMetadata().getETag()));
+         }
       }
       String mpuETag = new StringBuilder("\"")
          .append(md5Hasher.hash())
